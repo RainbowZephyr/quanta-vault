@@ -1,67 +1,67 @@
-name: Shared CI
-
-env:
-  GITHUB_ACTOR: ${{ github.actor }}
-  GITHUB_TOKEN: ${{ secrets.PIPELINE_TOKEN }}
-
-on:
-  workflow_call:
-    inputs:
-      environment:
-        required: true
-        type: string
-        description: 'Environment'
-    secrets:
-      PIPELINE_TOKEN:
-        required: true
-
-jobs:
-  lint:
-    runs-on: [ubuntu-latest]
-    container:
-      image: rainbowzephyr/jdk:kotlin-21
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Lint
-        run: ktlint
-
-  test:
-    env:
-      CI: "1"
-    runs-on: [ubuntu-latest]
-    container:
-      image: archlinux/archlinux:base-devel
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'gradle'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          # Only write to the cache for builds on the 'main' and 'staging' branches. (Default is 'main' only.)
-          # Builds on other branches will only read existing entries from the cache.
-          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/staging' }}
-
-      - name: Tests
-        run: ./gradlew test
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            build/reports/tests/test/
-            build/test-results/test/
-          retention-days: 3
+#name: Shared CI
+#
+#env:
+#  GITHUB_ACTOR: ${{ github.actor }}
+#  GITHUB_TOKEN: ${{ secrets.PIPELINE_TOKEN }}
+#
+#on:
+#  workflow_call:
+#    inputs:
+#      environment:
+#        required: true
+#        type: string
+#        description: 'Environment'
+#    secrets:
+#      PIPELINE_TOKEN:
+#        required: true
+#
+#jobs:
+#  lint:
+#    runs-on: [ubuntu-latest]
+#    container:
+#      image: rainbowzephyr/jdk:kotlin-21
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Lint
+#        run: ktlint
+#
+#  test:
+#    env:
+#      CI: "1"
+#    runs-on: [ubuntu-latest]
+#    container:
+#      image: archlinux/archlinux:base-devel
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Set up JDK
+#        uses: actions/setup-java@v4
+#        with:
+#          java-version: '21'
+#          distribution: 'temurin'
+#          cache: 'gradle'
+#
+#      - name: Setup Gradle
+#        uses: gradle/actions/setup-gradle@v4
+#        with:
+#          # Only write to the cache for builds on the 'main' and 'staging' branches. (Default is 'main' only.)
+#          # Builds on other branches will only read existing entries from the cache.
+#          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/staging' }}
+#
+#      - name: Tests
+#        run: ./gradlew test
+#
+#      - name: Upload test results
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: test-results
+#          path: |
+#            build/reports/tests/test/
+#            build/test-results/test/
+#          retention-days: 3

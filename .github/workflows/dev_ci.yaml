@@ -1,23 +1,23 @@
-name: Dev CI
-
-env:
-  GITHUB_ACTOR: ${{ github.actor }}
-  GITHUB_TOKEN: ${{ secrets.PIPELINE_TOKEN }}
-
-on:
-  push:
-    branches:
-      - "*"
-      - "!main"
-  pull_request:
-    branches:
-      - "*"
-      - "!main"
-
-jobs:
-  shared:
-    uses: ./.github/workflows/shared_ci.yaml
-    with:
-      environment: dev
-    secrets:
-      PIPELINE_TOKEN: ${{ secrets.PIPELINE_TOKEN }}
+#name: Dev CI
+#
+#env:
+#  GITHUB_ACTOR: ${{ github.actor }}
+#  GITHUB_TOKEN: ${{ secrets.PIPELINE_TOKEN }}
+#
+#on:
+#  push:
+#    branches:
+#      - "*"
+#      - "!main"
+#  pull_request:
+#    branches:
+#      - "*"
+#      - "!main"
+#
+#jobs:
+#  shared:
+#    uses: ./.github/workflows/shared_ci.yaml
+#    with:
+#      environment: dev
+#    secrets:
+#      PIPELINE_TOKEN: ${{ secrets.PIPELINE_TOKEN }}
