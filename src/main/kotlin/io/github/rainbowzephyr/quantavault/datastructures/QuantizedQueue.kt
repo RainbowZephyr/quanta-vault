@@ -3,24 +3,19 @@ package io.github.rainbowzephyr.quantavault.datastructures
 import io.github.rainbowzephyr.quantavault.ExpirableItem
 import io.github.rainbowzephyr.quantavault.ExpiryDuration
 import io.github.rainbowzephyr.quantavault.QuantizedStructure
-import io.github.rainbowzephyr.quantavault.datastructures.SchedulerInitializer
 import jakarta.validation.constraints.NotEmpty
 import java.time.Instant
-import java.util.Queue
+import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 
 
-open class QuantizedQueue<T : Any> : QuantizedStructure<T>, Queue<T> {
+open class QuantizedQueue<T> : QuantizedStructure<T>, Queue<T> {
     @NotEmpty
     private val queue: ArrayBlockingQueue<ExpirableItem<T>>
 
-
     constructor(
-        expiryExpiryDuration: ExpiryDuration,
-        sizeLimit: Int,
-        callback: Runnable,
-        forceEviction: Boolean = false
+        expiryExpiryDuration: ExpiryDuration, sizeLimit: Int, callback: Runnable, forceEviction: Boolean = false
     ) : super(
         expiryExpiryDuration, sizeLimit, callback, forceEviction
     ) {
@@ -29,9 +24,7 @@ open class QuantizedQueue<T : Any> : QuantizedStructure<T>, Queue<T> {
     }
 
     private constructor(
-        expiryExpiryDuration: ExpiryDuration,
-        callback: Runnable,
-        forceEviction: Boolean = false
+        expiryExpiryDuration: ExpiryDuration, callback: Runnable, forceEviction: Boolean = false
     ) : super(
         expiryExpiryDuration, callback, forceEviction
     ) {
@@ -39,9 +32,7 @@ open class QuantizedQueue<T : Any> : QuantizedStructure<T>, Queue<T> {
     }
 
     constructor(sizeLimit: Int, callback: Runnable, forceEviction: Boolean = false) : super(
-        sizeLimit,
-        callback,
-        forceEviction
+        sizeLimit, callback, forceEviction
     ) {
         this.queue = ArrayBlockingQueue(sizeLimit)
         initializeScheduler()
@@ -49,32 +40,11 @@ open class QuantizedQueue<T : Any> : QuantizedStructure<T>, Queue<T> {
 
     override fun initializeScheduler() {
         if (expiryDuration != null) {
-
-//            val runnable = Runnable {
-//                val itemsToRemove = ArrayList<ExpirableItem<T>>()
-//
-//                for (i in queue) {
-//                    // Check if insertion date is no longer valid
-//                    val duration = Duration.of(expiryDuration.value, expiryDuration.unit)
-//                    if (i.insertionTime.plus(duration).isBefore(Instant.now())) {
-//                        try {
-//                            evictionCallback.run()
-//                            itemsToRemove.add(i)
-//                        } catch (e: Exception) {
-//                            throw RuntimeException("Failed to remove item ${i.item}", e)
-//                        }
-//                    }
-//                }
-//
-//                for (item in itemsToRemove) {
-//                    queue.remove(item)
-//                }
-//
-////                println("After cleanup: $queue")
-//            }
-
-            @Suppress("unchecked_cast")
-            val runnable = initializeListIterableScheduler(queue as java.util.Collection<ExpirableItem<T>>, expiryDuration, evictionCallback)
+            @Suppress("unchecked_cast") val runnable = initializeListIterableScheduler(
+                queue as java.util.Collection<ExpirableItem<T>>,
+                expiryDuration,
+                evictionCallback
+            )
 
             this.scheduledExecutor.scheduleWithFixedDelay(
                 runnable, expiryDuration.value, expiryDuration.value, TimeUnit.of(expiryDuration.unit)
@@ -94,16 +64,42 @@ open class QuantizedQueue<T : Any> : QuantizedStructure<T>, Queue<T> {
         return queue.poll()?.item
     }
 
+    fun removeWithCallback(): T? {
+        val removedItem = remove()
+        if(removedItem != null) {
+            evictionCallback.run()
+        }
+
+        return removedItem
+    }
+
     override fun remove(): T? {
         return queue.remove()?.item
     }
 
-    override fun offer(e: T?): Boolean {
-        TODO("Not yet implemented")
+    override fun offer(e: T): Boolean {
+        if(queue.size == sizeLimit){
+            evictionCallback.run()
+        }
+
+        return queue.offer(ExpirableItem(e, Instant.now()))
     }
 
     override fun add(e: T): Boolean {
+        if(queue.size == sizeLimit){
+            evictionCallback.run()
+        }
+
         return queue.add(ExpirableItem(e, Instant.now()))
+    }
+
+    fun removeWithCallback(e: T): Boolean {
+        val isRemoved = remove(e)
+        if(isRemoved) {
+            evictionCallback.run()
+        }
+
+        return isRemoved
     }
 
     override fun remove(element: T): Boolean {
@@ -111,23 +107,26 @@ open class QuantizedQueue<T : Any> : QuantizedStructure<T>, Queue<T> {
     }
 
     override fun addAll(elements: Collection<T>): Boolean {
-        TODO("Not yet implemented")
+        return queue.addAll(elements.map { ExpirableItem(it, Instant.now()) })
     }
 
     override fun clear() {
-        TODO("Not yet implemented")
+        queue.clear()
     }
 
     override fun iterator(): MutableIterator<T> {
-        TODO("Not yet implemented")
+        val reducedQueue = ArrayBlockingQueue<T>(queue.size, true, queue.map(ExpirableItem<T>::item))
+        return reducedQueue.iterator()
     }
 
     override fun removeAll(elements: Collection<T>): Boolean {
-        TODO("Not yet implemented")
+        val expirableItems = elements.map { ExpirableItem(it, Instant.now()) }.toSet()
+        return queue.removeAll(expirableItems)
     }
 
     override fun retainAll(elements: Collection<T>): Boolean {
-        TODO("Not yet implemented")
+        val expirableItems = elements.map { ExpirableItem(it, Instant.now()) }.toSet()
+        return queue.retainAll(expirableItems)
     }
 
     override val size: Int
@@ -141,14 +140,14 @@ open class QuantizedQueue<T : Any> : QuantizedStructure<T>, Queue<T> {
         return queue.contains(ExpirableItem(element, Instant.now()))
     }
 
-    override fun containsAll(elements: Collection<T?>): Boolean {
-        TODO("Not yet implemented")
+    override fun containsAll(elements: Collection<T>): Boolean {
+        val expirableItems = elements.map { ExpirableItem(it, Instant.now()) }.toSet()
+        return queue.containsAll(expirableItems)
     }
 
     override fun toString(): String {
         val tmp = ArrayBlockingQueue<T>(queue.size, false, queue.map { it.item })
         return tmp.toString()
     }
-
 
 }
