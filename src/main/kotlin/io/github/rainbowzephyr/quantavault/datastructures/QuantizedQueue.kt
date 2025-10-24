@@ -14,10 +14,19 @@ open class QuantizedQueue<T> : QuantizedStructure<T>, Queue<T> {
     @NotEmpty
     private val queue: ArrayBlockingQueue<ExpirableItem<T>>
 
+//    constructor(
+//        expiryExpiryDuration: ExpiryDuration, sizeLimit: Int, callback: Runnable, forceEviction: Boolean = false
+//    ) : super(
+//        expiryExpiryDuration, sizeLimit, callback, forceEviction
+//    ) {
+//        this.queue = ArrayBlockingQueue(sizeLimit)
+//        initializeScheduler()
+//    }
+
     constructor(
         expiryExpiryDuration: ExpiryDuration, sizeLimit: Int, callback: Runnable, forceEviction: Boolean = false
     ) : super(
-        expiryExpiryDuration, sizeLimit, callback, forceEviction
+        expiryExpiryDuration,  callback, forceEviction
     ) {
         this.queue = ArrayBlockingQueue(sizeLimit)
         initializeScheduler()
@@ -31,12 +40,12 @@ open class QuantizedQueue<T> : QuantizedStructure<T>, Queue<T> {
         this.queue = ArrayBlockingQueue(1)
     }
 
-    constructor(sizeLimit: Int, callback: Runnable, forceEviction: Boolean = false) : super(
-        sizeLimit, callback, forceEviction
-    ) {
-        this.queue = ArrayBlockingQueue(sizeLimit)
-        initializeScheduler()
-    }
+//    constructor(sizeLimit: Int, callback: Runnable, forceEviction: Boolean = false) : super(
+//        sizeLimit, callback, forceEviction
+//    ) {
+//        this.queue = ArrayBlockingQueue(sizeLimit)
+//        initializeScheduler()
+//    }
 
     override fun initializeScheduler() {
         if (expiryDuration != null) {
@@ -95,7 +104,7 @@ open class QuantizedQueue<T> : QuantizedStructure<T>, Queue<T> {
 
     fun removeWithCallback(e: T): Boolean {
         val isRemoved = remove(e)
-        if(isRemoved) {
+        if(isRemoved || forceCallbackOnRemoval) {
             evictionCallback.run()
         }
 

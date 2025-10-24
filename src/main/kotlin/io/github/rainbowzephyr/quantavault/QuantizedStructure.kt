@@ -12,28 +12,28 @@ abstract class QuantizedStructure<T> {
     val expiryDuration: ExpiryDuration?
     val sizeLimit: Int?
     val evictionCallback: Runnable
-    val forceEviction: Boolean
+    val forceCallbackOnRemoval: Boolean
 
-    constructor(expiryExpiryDuration: ExpiryDuration, sizeLimit: Int, callback: Runnable, forceEviction: Boolean) {
-        this.expiryDuration = expiryExpiryDuration
-        this.sizeLimit = sizeLimit
-        this.evictionCallback = callback
-        this.forceEviction = forceEviction
-    }
+//    constructor(expiryExpiryDuration: ExpiryDuration, sizeLimit: Int, callback: Runnable, forceEviction: Boolean) {
+//        this.expiryDuration = expiryExpiryDuration
+//        this.sizeLimit = sizeLimit
+//        this.evictionCallback = callback
+//        this.forceCallbackOnRemoval = forceEviction
+//    }
 
     constructor(expiryExpiryDuration: ExpiryDuration, callback: Runnable, forceEviction: Boolean) {
         this.expiryDuration = expiryExpiryDuration
         this.sizeLimit = null
         this.evictionCallback = callback
-        this.forceEviction = forceEviction
+        this.forceCallbackOnRemoval = forceEviction
     }
 
-    constructor(sizeLimit: Int, callback: Runnable, forceEviction: Boolean) {
-        this.expiryDuration = null
-        this.sizeLimit = sizeLimit
-        this.evictionCallback = callback
-        this.forceEviction = forceEviction
-    }
+//    constructor(sizeLimit: Int, callback: Runnable, forceEviction: Boolean) {
+//        this.expiryDuration = null
+//        this.sizeLimit = sizeLimit
+//        this.evictionCallback = callback
+//        this.forceCallbackOnRemoval = forceEviction
+//    }
 
     @Throws(Exception::class)
     protected abstract fun initializeScheduler()
@@ -48,17 +48,17 @@ abstract class QuantizedStructure<T> {
                 // Check if insertion date is no longer valid
                 val duration = Duration.of(expiryDuration.value, expiryDuration.unit)
                 if (i.insertionTime.plus(duration).isBefore(Instant.now())) {
-                    try {
-                        evictionCallback.run()
-                        itemsToRemove.add(i)
-                    } catch (e: Exception) {
-                        throw RuntimeException("Failed to remove item ${i.item}", e)
-                    }
+                    itemsToRemove.add(i)
                 }
             }
 
             for (item in itemsToRemove) {
-                iterable.remove(item)
+                try {
+                    evictionCallback.run()
+                    iterable.remove(item)
+                } catch (e: Exception) {
+                    throw RuntimeException("Failed to remove item ${item.item}", e)
+                }
             }
 
             println("After cleanup: $iterable")
