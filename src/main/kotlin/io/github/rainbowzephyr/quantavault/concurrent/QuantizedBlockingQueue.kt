@@ -1,4 +1,4 @@
-package io.github.rainbowzephyr.quantavault.datastructures
+package io.github.rainbowzephyr.quantavault.concurrent
 
 import io.github.rainbowzephyr.quantavault.ExpirableItem
 import io.github.rainbowzephyr.quantavault.ExpiryDuration
@@ -10,7 +10,7 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 
 
-open class QuantizedQueue<T> : QuantizedStructure<T>, Queue<T> {
+open class QuantizedBlockingQueue<T> : QuantizedStructure<T>, Queue<T> {
     @NotEmpty
     private val queue: ArrayBlockingQueue<ExpirableItem<T>>
 
