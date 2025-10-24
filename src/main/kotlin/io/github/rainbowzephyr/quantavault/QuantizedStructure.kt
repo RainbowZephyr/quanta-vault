@@ -1,11 +1,10 @@
 package io.github.rainbowzephyr.quantavault
 
-
 import java.time.Duration
 import java.time.Instant
+import java.util.Collection
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
-import java.util.Collection
 
 abstract class QuantizedStructure<T> {
     val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
@@ -39,36 +38,34 @@ abstract class QuantizedStructure<T> {
     protected abstract fun initializeScheduler()
 
     protected fun initializeListIterableScheduler(
-        iterable: Collection<ExpirableItem<T>>, expiryDuration: ExpiryDuration, evictionCallback: Runnable
-    ): Runnable {
-        return Runnable {
-            val itemsToRemove = ArrayList<ExpirableItem<T>>()
+        iterable: Collection<ExpirableItem<T>>,
+        expiryDuration: ExpiryDuration,
+        evictionCallback: Runnable,
+    ): Runnable = Runnable {
+        val itemsToRemove = ArrayList<ExpirableItem<T>>()
 
-            for (i in iterable) {
-                // Check if insertion date is no longer valid
-                val duration = Duration.of(expiryDuration.value, expiryDuration.unit)
-                if (i.insertionTime.plus(duration).isBefore(Instant.now())) {
-                    itemsToRemove.add(i)
-                }
+        for (i in iterable) {
+            // Check if insertion date is no longer valid
+            val duration = Duration.of(expiryDuration.value, expiryDuration.unit)
+            if (i.insertionTime.plus(duration).isBefore(Instant.now())) {
+                itemsToRemove.add(i)
             }
-
-            for (item in itemsToRemove) {
-                try {
-                    evictionCallback.run()
-                    iterable.remove(item)
-                } catch (e: Exception) {
-                    throw RuntimeException("Failed to remove item ${item.item}", e)
-                }
-            }
-
-            println("After cleanup: $iterable")
         }
-    }
 
+        for (item in itemsToRemove) {
+            try {
+                evictionCallback.run()
+                iterable.remove(item)
+            } catch (e: Exception) {
+                throw RuntimeException("Failed to remove item ${item.item}", e)
+            }
+        }
+
+        println("After cleanup: $iterable")
+    }
 
     @Throws(SecurityException::class)
     fun destroy() {
         scheduledExecutor.shutdownNow()
     }
-
 }

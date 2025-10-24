@@ -21,7 +21,6 @@ java {
     sourceCompatibility = JavaVersion.toVersion("21")
 }
 
-
 tasks.test {
     useJUnitPlatform()
 }

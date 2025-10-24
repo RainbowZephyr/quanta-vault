@@ -11,8 +11,9 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
-
-class QuantizedConcurrentHashSet<T> : QuantizedStructure<T>, Set<T> {
+class QuantizedConcurrentHashSet<T> :
+    QuantizedStructure<T>,
+    Set<T> {
     @NotEmpty
     private val set: ConcurrentHashMap<ExpirableItem<T>, Boolean>
     private val lock = Any()
@@ -25,7 +26,9 @@ class QuantizedConcurrentHashSet<T> : QuantizedStructure<T>, Set<T> {
 //    }
 
     constructor(expiryExpiryDuration: ExpiryDuration, callback: Runnable, forceEviction: Boolean) : super(
-        expiryExpiryDuration, callback, forceEviction
+        expiryExpiryDuration,
+        callback,
+        forceEviction,
     ) {
         this.set = ConcurrentHashMap()
         initializeScheduler()
@@ -40,34 +43,37 @@ class QuantizedConcurrentHashSet<T> : QuantizedStructure<T>, Set<T> {
 //        initializeScheduler()
 //    }
 
-
     override fun initializeScheduler() {
         if (expiryDuration != null) {
-            val runnable = Runnable {
-                val itemsToRemove = ArrayList<ExpirableItem<T>>()
+            val runnable =
+                Runnable {
+                    val itemsToRemove = ArrayList<ExpirableItem<T>>()
 
-                set.forEach { (i, v) ->
-                    // Check if insertion date is no longer valid
-                    val duration = Duration.of(expiryDuration.value, expiryDuration.unit)
-                    if (i.insertionTime.plus(duration).isBefore(Instant.now())) {
-                        itemsToRemove.add(i)
+                    set.forEach { (i, v) ->
+                        // Check if insertion date is no longer valid
+                        val duration = Duration.of(expiryDuration.value, expiryDuration.unit)
+                        if (i.insertionTime.plus(duration).isBefore(Instant.now())) {
+                            itemsToRemove.add(i)
+                        }
                     }
-                }
 
-                for (item in itemsToRemove) {
-                    try {
-                        evictionCallback.run()
-                        set.remove(item)
-                    } catch (e: Exception) {
-                        throw RuntimeException("Failed to remove item ${item.item}", e)
+                    for (item in itemsToRemove) {
+                        try {
+                            evictionCallback.run()
+                            set.remove(item)
+                        } catch (e: Exception) {
+                            throw RuntimeException("Failed to remove item ${item.item}", e)
+                        }
                     }
-                }
 
-                println("After cleanup: $set")
-            }
+                    println("After cleanup: $set")
+                }
 
             this.scheduledExecutor.scheduleWithFixedDelay(
-                runnable, expiryDuration.value, expiryDuration.value, TimeUnit.of(expiryDuration.unit)
+                runnable,
+                expiryDuration.value,
+                expiryDuration.value,
+                TimeUnit.of(expiryDuration.unit),
             )
         }
     }
@@ -75,13 +81,9 @@ class QuantizedConcurrentHashSet<T> : QuantizedStructure<T>, Set<T> {
     override val size: Int
         get() = set.size
 
-    override fun isEmpty(): Boolean {
-        return set.isEmpty()
-    }
+    override fun isEmpty(): Boolean = set.isEmpty()
 
-    override fun contains(o: T): Boolean {
-        return set.contains(ExpirableItem(o, Instant.now()))
-    }
+    override fun contains(o: T): Boolean = set.contains(ExpirableItem(o, Instant.now()))
 
     override fun iterator(): MutableIterator<T> {
         val tmp = set.keys.map { it.item }.toMutableList()
@@ -122,12 +124,10 @@ class QuantizedConcurrentHashSet<T> : QuantizedStructure<T>, Set<T> {
         }
     }
 
-    override fun containsAll(c: Collection<T>): Boolean {
-        return set.keys.containsAll(c.map { ExpirableItem(it, Instant.now()) })
-    }
+    override fun containsAll(c: Collection<T>): Boolean = set.keys.containsAll(c.map { ExpirableItem(it, Instant.now()) })
 
     override fun addAll(c: Collection<T>): Boolean {
-        if(containsAll(c)){
+        if (containsAll(c)) {
             return false
         }
 

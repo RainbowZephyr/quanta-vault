@@ -14,9 +14,13 @@ class QuantizedCopyOnWriteStack<T : Any> : QuantizedStructure<T> {
     private val list: CopyOnWriteArrayList<ExpirableItem<T>>
 
     constructor(
-        expiryExpiryDuration: ExpiryDuration, callback: Runnable, forceEviction: Boolean = false
+        expiryExpiryDuration: ExpiryDuration,
+        callback: Runnable,
+        forceEviction: Boolean = false,
     ) : super(
-        expiryExpiryDuration, callback, forceEviction
+        expiryExpiryDuration,
+        callback,
+        forceEviction,
     ) {
         this.list = CopyOnWriteArrayList()
         initializeScheduler()
@@ -34,23 +38,27 @@ class QuantizedCopyOnWriteStack<T : Any> : QuantizedStructure<T> {
         return list.last().item
     }
 
-    fun peek(): T? {
-        return if (list.isNotEmpty()) {
-            list.last().item
-        } else {
-            null
-        }
+    fun peek(): T? = if (list.isNotEmpty()) {
+        list.last().item
+    } else {
+        null
     }
-
 
     override fun initializeScheduler() {
         if (expiryDuration != null) {
-            @Suppress("unchecked_cast") val runnable = initializeListIterableScheduler(
-                list as java.util.Collection<ExpirableItem<T>>, expiryDuration, evictionCallback
-            )
+            @Suppress("unchecked_cast")
+            val runnable =
+                initializeListIterableScheduler(
+                    list as java.util.Collection<ExpirableItem<T>>,
+                    expiryDuration,
+                    evictionCallback,
+                )
 
             this.scheduledExecutor.scheduleWithFixedDelay(
-                runnable, expiryDuration.value, expiryDuration.value, TimeUnit.of(expiryDuration.unit)
+                runnable,
+                expiryDuration.value,
+                expiryDuration.value,
+                TimeUnit.of(expiryDuration.unit),
             )
         }
     }

@@ -9,8 +9,9 @@ import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 
-
-open class QuantizedBlockingQueue<T> : QuantizedStructure<T>, Queue<T> {
+open class QuantizedBlockingQueue<T> :
+    QuantizedStructure<T>,
+    Queue<T> {
     @NotEmpty
     private val queue: ArrayBlockingQueue<ExpirableItem<T>>
 
@@ -24,18 +25,27 @@ open class QuantizedBlockingQueue<T> : QuantizedStructure<T>, Queue<T> {
 //    }
 
     constructor(
-        expiryExpiryDuration: ExpiryDuration, sizeLimit: Int, callback: Runnable, forceEviction: Boolean = false
+        expiryExpiryDuration: ExpiryDuration,
+        sizeLimit: Int,
+        callback: Runnable,
+        forceEviction: Boolean = false,
     ) : super(
-        expiryExpiryDuration,  callback, forceEviction
+        expiryExpiryDuration,
+        callback,
+        forceEviction,
     ) {
         this.queue = ArrayBlockingQueue(sizeLimit)
         initializeScheduler()
     }
 
     private constructor(
-        expiryExpiryDuration: ExpiryDuration, callback: Runnable, forceEviction: Boolean = false
+        expiryExpiryDuration: ExpiryDuration,
+        callback: Runnable,
+        forceEviction: Boolean = false,
     ) : super(
-        expiryExpiryDuration, callback, forceEviction
+        expiryExpiryDuration,
+        callback,
+        forceEviction,
     ) {
         this.queue = ArrayBlockingQueue(1)
     }
@@ -49,45 +59,42 @@ open class QuantizedBlockingQueue<T> : QuantizedStructure<T>, Queue<T> {
 
     override fun initializeScheduler() {
         if (expiryDuration != null) {
-            @Suppress("unchecked_cast") val runnable = initializeListIterableScheduler(
-                queue as java.util.Collection<ExpirableItem<T>>,
-                expiryDuration,
-                evictionCallback
-            )
+            @Suppress("unchecked_cast")
+            val runnable =
+                initializeListIterableScheduler(
+                    queue as java.util.Collection<ExpirableItem<T>>,
+                    expiryDuration,
+                    evictionCallback,
+                )
 
             this.scheduledExecutor.scheduleWithFixedDelay(
-                runnable, expiryDuration.value, expiryDuration.value, TimeUnit.of(expiryDuration.unit)
+                runnable,
+                expiryDuration.value,
+                expiryDuration.value,
+                TimeUnit.of(expiryDuration.unit),
             )
         }
     }
 
-    override fun peek(): T? {
-        return queue.peek()?.item
-    }
+    override fun peek(): T? = queue.peek()?.item
 
-    override fun element(): T? {
-        return queue.element()?.item
-    }
+    override fun element(): T? = queue.element()?.item
 
-    override fun poll(): T? {
-        return queue.poll()?.item
-    }
+    override fun poll(): T? = queue.poll()?.item
 
     fun removeWithCallback(): T? {
         val removedItem = remove()
-        if(removedItem != null) {
+        if (removedItem != null) {
             evictionCallback.run()
         }
 
         return removedItem
     }
 
-    override fun remove(): T? {
-        return queue.remove()?.item
-    }
+    override fun remove(): T? = queue.remove()?.item
 
     override fun offer(e: T): Boolean {
-        if(queue.size == sizeLimit){
+        if (queue.size == sizeLimit) {
             evictionCallback.run()
         }
 
@@ -95,7 +102,7 @@ open class QuantizedBlockingQueue<T> : QuantizedStructure<T>, Queue<T> {
     }
 
     override fun add(e: T): Boolean {
-        if(queue.size == sizeLimit){
+        if (queue.size == sizeLimit) {
             evictionCallback.run()
         }
 
@@ -104,20 +111,16 @@ open class QuantizedBlockingQueue<T> : QuantizedStructure<T>, Queue<T> {
 
     fun removeWithCallback(e: T): Boolean {
         val isRemoved = remove(e)
-        if(isRemoved || forceCallbackOnRemoval) {
+        if (isRemoved || forceCallbackOnRemoval) {
             evictionCallback.run()
         }
 
         return isRemoved
     }
 
-    override fun remove(element: T): Boolean {
-        return queue.remove(ExpirableItem(element, Instant.now()))
-    }
+    override fun remove(element: T): Boolean = queue.remove(ExpirableItem(element, Instant.now()))
 
-    override fun addAll(elements: Collection<T>): Boolean {
-        return queue.addAll(elements.map { ExpirableItem(it, Instant.now()) })
-    }
+    override fun addAll(elements: Collection<T>): Boolean = queue.addAll(elements.map { ExpirableItem(it, Instant.now()) })
 
     override fun clear() {
         queue.clear()
@@ -141,13 +144,9 @@ open class QuantizedBlockingQueue<T> : QuantizedStructure<T>, Queue<T> {
     override val size: Int
         get() = queue.size
 
-    override fun isEmpty(): Boolean {
-        return queue.isEmpty()
-    }
+    override fun isEmpty(): Boolean = queue.isEmpty()
 
-    override fun contains(element: T): Boolean {
-        return queue.contains(ExpirableItem(element, Instant.now()))
-    }
+    override fun contains(element: T): Boolean = queue.contains(ExpirableItem(element, Instant.now()))
 
     override fun containsAll(elements: Collection<T>): Boolean {
         val expirableItems = elements.map { ExpirableItem(it, Instant.now()) }.toSet()
@@ -158,5 +157,4 @@ open class QuantizedBlockingQueue<T> : QuantizedStructure<T>, Queue<T> {
         val tmp = ArrayBlockingQueue<T>(queue.size, false, queue.map { it.item })
         return tmp.toString()
     }
-
 }
